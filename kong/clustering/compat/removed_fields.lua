@@ -11,6 +11,7 @@ return {
     rate_limiting = {
       "error_code",
       "error_message",
+      "sync_rate",
     },
     response_ratelimiting = {
       "redis_ssl",
@@ -32,6 +33,13 @@ return {
     },
     zipkin = {
       "http_response_header_for_traceid",
+    },
+  },
+
+  -- Any dataplane older than 3.1.0
+  [3000999999] = {
+    rate_limiting = {
+      "sync_rate",
     },
   },
 }

@@ -121,6 +121,7 @@ describe("CP/DP config compat transformations #" .. strategy, function()
           -- [[ new fields
           error_code = 403,
           error_message = "go away!",
+          sync_rate = 10,
           -- ]]
         },
       }
@@ -143,7 +144,7 @@ describe("CP/DP config compat transformations #" .. strategy, function()
 
 
       id = utils.uuid()
-      plugin = get_plugin(id, "3.1.0", rate_limit.name)
+      plugin = get_plugin(id, "3.2.0", rate_limit.name)
       assert.same(rate_limit.config, plugin.config)
       assert.equals(CLUSTERING_SYNC_STATUS.NORMAL, get_sync_status(id))
     end)
