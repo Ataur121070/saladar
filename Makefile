@@ -85,20 +85,63 @@ setup-ci:
 	KONG_NGINX_MODULE_BRANCH=$(KONG_NGINX_MODULE_BRANCH) \
 	.ci/setup_env.sh
 
-package/deb: setup-kong-build-tools
-	cd $(KONG_BUILD_TOOLS_LOCATION); \
-	PACKAGE_TYPE=deb RESTY_IMAGE_BASE=ubuntu RESTY_IMAGE_TAG=22.04 $(MAKE) package-kong && \
-	cp $(KONG_BUILD_TOOLS_LOCATION)/output/*.deb .
+ARCHITECTURE ?= amd64
+PACKAGE_TYPE ?= deb
+PACKAGE_EXTENSION ?= $(PACKAGE_TYPE)
+OPERATING_SYSTEM ?= ubuntu
+OPERATING_SYSTEM_VERSION ?= 22.04
+KONG_VERSION ?= 3.0.1
+DOCKER_BUILD_TARGET ?= build
+DOCKER_BUILD_OUTPUT ?= --load
 
-package/apk: setup-kong-build-tools
-	cd $(KONG_BUILD_TOOLS_LOCATION); \
-	PACKAGE_TYPE=apk RESTY_IMAGE_BASE=alpine RESTY_IMAGE_TAG=3 $(MAKE) package-kong && \
-	cp $(KONG_BUILD_TOOLS_LOCATION)/output/*.apk.* .
+clean:
+	-rm -rf package
+	-rm -rf docker-kong
 
-package/rpm: setup-kong-build-tools
-	cd $(KONG_BUILD_TOOLS_LOCATION); \
-	PACKAGE_TYPE=rpm RESTY_IMAGE_BASE=rhel RESTY_IMAGE_TAG=8.6 $(MAKE) package-kong && \
-	cp $(KONG_BUILD_TOOLS_LOCATION)/output/*.rpm .
+build:
+	docker image inspect -f='{{.Id}}' $(DOCKER_BUILD_TARGET)-$(ARCHITECTURE)-$(PACKAGE_TYPE) || \
+	docker buildx build \
+		--build-arg PACKAGE_TYPE=$(PACKAGE_TYPE) \
+		--build-arg KONG_VERSION=$(KONG_VERSION) \
+		--build-arg OPERATING_SYSTEM=$(OPERATING_SYSTEM) \
+		--build-arg OPERATING_SYSTEM_VERSION=$(OPERATING_SYSTEM_VERSION) \
+		--build-arg ARCHITECTURE=$(ARCHITECTURE) \
+		--target=$(DOCKER_BUILD_TARGET) \
+		-t $(DOCKER_BUILD_TARGET)-$(ARCHITECTURE)-$(PACKAGE_TYPE) \
+		$(DOCKER_BUILD_OUTPUT) .
+
+package:
+	$(MAKE) build
+	$(MAKE) DOCKER_BUILD_TARGET=package DOCKER_BUILD_OUTPUT="-o package" build
+	ls package/
+
+package/deb:
+	PACKAGE_TYPE=deb OPERATING_SYSTEM=ubuntu OPERATING_SYSTEM_VERSION=22.04 $(MAKE) package
+
+package/apk:
+	PACKAGE_TYPE=apk OPERATING_SYSTEM=alpine OPERATING_SYSTEM_VERSION=3 $(MAKE) package
+
+package/rpm:
+	PACKAGE_TYPE=rpm OPERATING_SYSTEM=redhat OPERATING_SYSTEM_VERSION=8 $(MAKE) package
+
+package/docker: package
+	-rm -rf docker-kong
+	git clone --single-branch --branch master git@github.com:Kong/docker-kong.git docker-kong
+	cp package/*.$(PACKAGE_EXTENSION) ./docker-kong/kong.$(PACKAGE_EXTENSION)
+	sed -i.bak "s|^FROM .*|FROM ${OPERATING_SYSTEM}:${OPERATING_SYSTEM_VERSION}|" docker-kong/Dockerfile.$(PACKAGE_TYPE)
+	cd docker-kong && \
+	docker image inspect -f '{{.ID}}' kong-$(ARCHITECTURE)-$(PACKAGE_TYPE) || \
+	ASSET_LOCATION=local DOCKER_TAG_PREFIX=kong-$(ARCHITECTURE) PACKAGE=$(PACKAGE_TYPE) $(MAKE) build_v2
+	-rm -rf docker-kong
+
+package/docker/deb: package/deb
+	PACKAGE_TYPE=deb OPERATING_SYSTEM=ubuntu OPERATING_SYSTEM_VERSION=22.04 $(MAKE) package/docker
+
+package/docker/apk: package/apk
+	PACKAGE_TYPE=apk OPERATING_SYSTEM=alpine OPERATING_SYSTEM_VERSION=3 PACKAGE_EXTENSION=apk.tar.gz $(MAKE) package/docker
+
+package/docker/rpm: package/rpm
+	PACKAGE_TYPE=rpm OPERATING_SYSTEM=redhat\/ubi8-minimal OPERATING_SYSTEM_VERSION=8.6 $(MAKE) package/docker
 
 package/test/deb: package/deb
 	cd $(KONG_BUILD_TOOLS_LOCATION); \
@@ -112,17 +155,6 @@ package/test/rpm: package/rpm
 	cd $(KONG_BUILD_TOOLS_LOCATION); \
 	PACKAGE_TYPE=rpm RESTY_IMAGE_BASE=rhel RESTY_IMAGE_TAG=8.6 $(MAKE) test
 
-package/docker/deb: package/deb
-	cd $(KONG_BUILD_TOOLS_LOCATION); \
-	PACKAGE_TYPE=deb RESTY_IMAGE_BASE=ubuntu RESTY_IMAGE_TAG=22.04 $(MAKE) build-test-container
-
-package/docker/apk: package/apk
-	cd $(KONG_BUILD_TOOLS_LOCATION); \
-	PACKAGE_TYPE=apk RESTY_IMAGE_BASE=alpine RESTY_IMAGE_TAG=3 $(MAKE) build-test-container
-
-package/docker/rpm: package/rpm
-	cd $(KONG_BUILD_TOOLS_LOCATION); \
-	PACKAGE_TYPE=rpm RESTY_IMAGE_BASE=rhel RESTY_IMAGE_TAG=8.6 $(MAKE) build-test-container
 
 release/docker/deb: package/docker/deb
 	cd $(KONG_BUILD_TOOLS_LOCATION); \
