@@ -58,3 +58,39 @@ RUN ./package.sh
 FROM scratch as package
 
 COPY --from=fpm /output/* /
+
+
+FROM kong/kong-build-tools:deb-1.6.4 as develop
+
+COPY --from=build-result /tmp/build /
+
+ENV PATH=$PATH:/kong/bin:/usr/local/openresty/bin/:/usr/local/kong/bin/:/usr/local/openresty/nginx/sbin/
+ENV LUA_PATH=/kong/?.lua;/kong/?/init.lua;/root/.luarocks/share/lua/5.1/?.lua;/root/.luarocks/share/lua/5.1/?/init.lua;/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua;./?.lua;/usr/local/openresty/luajit/share/luajit-2.1.0-beta3/?.lua;/usr/local/openresty/luajit/share/lua/5.1/?.lua;/usr/local/openresty/luajit/share/lua/5.1/?/init.lua
+ENV LUA_CPATH=/root/.luarocks/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/?.so;./?.so;/usr/local/openresty/luajit/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so
+
+RUN rm -rf /usr/local/bin/kong
+RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y \
+    ca-certificates \
+    tzdata \
+    vim \
+    jq \
+    httpie \
+    iputils-ping \
+    net-tools \
+    valgrind \
+    net-tools && \
+    dpkg-reconfigure --frontend noninteractive tzdata && \
+    apt-get install -y postgresql
+
+RUN curl -L https://cpanmin.us | perl - App::cpanminus \
+    && cpanm --notest Test::Nginx \
+    && cpanm --notest local::lib
+
+COPY . /kong
+WORKDIR /kong
+RUN ./fpm/after-install.sh && \
+    git config --global --add safe.directory /kong && \
+    make dev

@@ -93,10 +93,35 @@ OPERATING_SYSTEM_VERSION ?= 22.04
 KONG_VERSION ?= 3.0.1
 DOCKER_BUILD_TARGET ?= build
 DOCKER_BUILD_OUTPUT ?= --load
+DOCKER_COMMAND ?= /bin/bash
 
 clean:
 	-rm -rf package
 	-rm -rf docker-kong
+
+docker/run: develop
+	docker run -it --rm \
+		-v $(PWD):/kong \
+		develop-$(ARCHITECTURE)-$(PACKAGE_TYPE) \
+		$(DOCKER_COMMAND)
+
+docker-compose/run: develop
+	KONG_DOCKER_IMAGE=develop-$(ARCHITECTURE)-$(PACKAGE_TYPE) \
+	docker-compose up -d
+
+docker/test/lint:
+	$(MAKE) DOCKER_COMMAND="make lint" docker/run
+
+docker/test/validate-rockspec:
+	$(MAKE) DOCKER_COMMAND="scripts/validate-rockspec" docker/run
+
+# Conf loader tests failing currently
+docker/test/unit: docker-compose/run
+	docker-compose exec kong bin/busted -v -o htest spec/01-unit
+
+develop:
+	$(MAKE) build
+	$(MAKE) DOCKER_BUILD_TARGET=develop build
 
 build:
 	docker image inspect -f='{{.Id}}' $(DOCKER_BUILD_TARGET)-$(ARCHITECTURE)-$(PACKAGE_TYPE) || \
