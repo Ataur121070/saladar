@@ -98,6 +98,8 @@ DOCKER_COMMAND ?= /bin/bash
 clean:
 	-rm -rf package
 	-rm -rf docker-kong
+	docker-compose kill
+	docker-compose rm -f
 
 docker/run: develop
 	docker run -it --rm \
@@ -108,6 +110,14 @@ docker/run: develop
 docker-compose/run: develop
 	KONG_DOCKER_IMAGE=develop-$(ARCHITECTURE)-$(PACKAGE_TYPE) \
 	docker-compose up -d
+
+docker-compose/exec: docker-compose/run
+	docker-compose exec kong $(DOCKER_COMMAND)
+
+docker/test/integration/postgres:
+	$(MAKE) TEST_SUITE=integration \
+	DOCKER_COMMAND=.ci/run_tests.sh \
+	docker-compose/exec
 
 docker/test/lint:
 	$(MAKE) DOCKER_COMMAND="make lint" docker/run

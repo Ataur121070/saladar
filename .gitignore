@@ -27,3 +27,5 @@ bin/grpcurl
 *.so
 *.bak
 package/
+spec/fixtures/custom_nginx.template.tmp
+relpath/

@@ -1,19 +1,49 @@
 version: '2.1'
-
-x-kong-config: &kong-env
-  KONG_DATABASE: ${KONG_DATABASE:-off}
-  KONG_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
-  KONG_PG_HOST: db
-  KONG_PG_USER: ${KONG_PG_USER:-kong}
-  KONG_PG_PASSWORD: ${KONG_PG_PASSWORD:-kongpassword}
-  KONG_ANONYMOUS_REPORTS: "false"
-
 services:
+  kong:
+    image: ${KONG_DOCKER_IMAGE:-kong:latest}
+    privileged: true
+    network_mode: host
+    container_name: kong
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/kong
+    environment:
+      JOBS: 2
+      TEST_SPLIT: ${TEST_SPLIT:-}
+      TEST_SUITE: ${TEST_SUITE:-integration}
+      KONG_DATABASE: ${TEST_DATABASE:-postgres}
+      KONG_TEST_DATABASE: ${TEST_DATABASE:-postgres}
+      KONG_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
+      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD:-kongpassword}
+      KONG_TEST_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
+      KONG_TEST_PG_PASSWORD: ${KONG_PG_PASSWORD:-kongpassword}
+      KONG_CASSANDRA_CONTACT_POINTS: 127.0.0.1
+      KONG_TEST_CASSANDRA_CONTACT_POINTS: 127.0.0.1
+      KONG_PG_HOST: 127.0.0.1
+      KONG_TEST_PG_HOST: 127.0.0.1
+      KONG_PATH: /kong
+      KONG_TEST_PATH: /kong
+      KONG_PG_USER: ${KONG_PG_USER:-kong}
+      KONG_TEST_PG_USER: ${KONG_PG_USER:-kong}
+      KONG_ANONYMOUS_REPORTS: "false"
+      KONG_REDIS_HOST: 127.0.0.1
+      KONG_SPEC_REDIS_HOST: 127.0.0.1
+      KONG_TEST_NGINX_USER: root
+    stdin_open: true
+    tty: true
+    restart: on-failure
   postgres:
     image: postgres:${POSTGRES_VERSION:-13}
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
-      POSTGRES_DB: ${KONG_PG_DATABASE:-kong_tests}
+      POSTGRES_DB: ${KONG_PG_DATABASE:-kong}
       POSTGRES_USER: ${KONG_PG_USER:-kong}
       POSTGRES_PASSWORD: ${KONG_PG_PASSWORD:-kongpassword}
     ports:
@@ -26,31 +56,37 @@ services:
       timeout: 10s
       retries: 10
     restart: on-failure
-  kong:
-    image: ${KONG_DOCKER_IMAGE:-kong:latest}
-    privileged: true
-    network_mode: host
-    container_name: kong
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - .:/kong
+  cassandra:
+    image: cassandra:${CASSANDRA_VERSION:-3.9}
     environment:
-      <<: *kong-env
-      JOBS: 2
-      KONG_TEST_DATABASE: ${TEST_DATABASE:-postgres}
-      KONG_TEST_PG_DATABASE: ${KONG_PG_DATABASE:-kong_tests}
-      KONG_TEST_PG_PASSWORD: ${KONG_PG_PASSWORD:-kongpassword}
-      KONG_CASSANDRA_CONTACT_POINTS: 127.0.0.1
-      KONG_TEST_CASSANDRA_CONTACT_POINTS: 127.0.0.1
-      KONG_TEST_PG_HOST: 127.0.0.1
-      KONG_PATH: /kong
-      KONG_TEST_PATH: /kong
-      KONG_TEST_PG_USER: ${KONG_PG_USER:-kong}
-      KONG_REDIS_HOST: 127.0.0.1
-      KONG_SPEC_REDIS_HOST: 127.0.0.1
-      KONG_TEST_NGINX_USER: root
-    stdin_open: true
-    tty: true
+      MAX_HEAP_SIZE: 256M
+      HEAP_NEWSIZE: 128M
+    ports:
+      - '7000:7000'
+      - '9042:9042'
+    expose:
+      - 7000
+      - 9042
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
     restart: on-failure
+  grpcbin:
+    image: moul/grpcbin
+    container_name: grpcbin
+    ports:
+      - 15002:9000
+      - 15003:9001
+  redis:
+    image: redis:5.0.9-alpine
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
