@@ -47,17 +47,10 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ env.INSTALL_ROOT }}
-        key: ${{ hashFiles('.requirements', 'kong-*.rockspec', '**/*.bzl', '**/*.bazel', '.github/workflows/build_and_test.yml') }}
+        key: ${{ hashFiles('.requirements', 'kong-*.rockspec', '.bazelversion', '**/*.bzl', '**/*.bazel', '.github/workflows/build_and_test.yml') }}
 
     - uses: bazelbuild/setup-bazelisk@v2
       if: steps.cache-deps.outputs.cache-hit != 'true'
-
-    - name: Mount bazel cache
-      uses: actions/cache@v3
-      if: steps.cache-deps.outputs.cache-hit != 'true'
-      with:
-        path: "~/.cache/bazel"
-        key: bazel-${{ hashFiles('.bazelversion', '**/*.bzl', '**/*.bazel') }}
 
     - name: Build OpenResty
       if: steps.cache-deps.outputs.cache-hit != 'true'
