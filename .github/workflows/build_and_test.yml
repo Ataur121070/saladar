@@ -233,6 +233,9 @@ jobs:
     - name: Add to Path
       run: echo "$INSTALL_ROOT/openssl/bin:$INSTALL_ROOT/openresty/nginx/sbin:$INSTALL_ROOT/openresty/bin:$INSTALL_ROOT/luarocks/bin:$GITHUB_WORKSPACE/kong-build-tools/openresty-build-tools:$INSTALL_ROOT/go-pluginserver" >> $GITHUB_PATH
 
+    - run: |
+          nginx -V
+
     - name: Add gRPC test host names
       run: |
           echo "127.0.0.1 grpcs_1.test" | sudo tee -a /etc/hosts
