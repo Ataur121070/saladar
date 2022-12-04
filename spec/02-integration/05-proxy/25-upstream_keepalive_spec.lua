@@ -127,7 +127,7 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .has.line([[keepalive get pool, name: [A-F0-9.:]+\|\d+\|one.com, cpool: [A-F0-9]+]])
     assert.errlog()
-          .has.line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|one.com, size: [A-F0-9]+]])
+          .has.line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|one.com, size: \d+]])
     assert.errlog()
           .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
     assert.errlog()
@@ -149,7 +149,7 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .has.line([[keepalive get pool, name: [A-F0-9.:]+\|\d+\|two.com, cpool: [A-F0-9]+]])
     assert.errlog()
-          .has.line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|two.com, size: [A-F0-9]+]])
+          .has.line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|two.com, size: \d+]])
     assert.errlog()
           .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
     assert.errlog()
@@ -237,6 +237,52 @@ describe("#postgres upstream keepalive", function()
           .not_has.line([[keepalive get pool]], true)
     assert.errlog()
           .not_has.line([[keepalive create pool]], true)
+  end)
+
+  it("reuse upstream keepalive pools", function()
+    start_kong()
+
+    local res = assert(proxy_client:send {
+      method = "GET",
+      path = "/echo_sni",
+      headers = {
+        Host = "one.com",
+      }
+    })
+    local body = assert.res_status(200, res)
+    assert.equal("SNI=one.com", body)
+    assert.errlog()
+          .has
+          .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|one.com]])
+
+    assert.errlog()
+          .has.line([[keepalive get pool, name: [A-F0-9.:]+\|\d+\|one.com, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|one.com, size: \d+]])
+    assert.errlog()
+          .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
+
+    local res = assert(proxy_client:send {
+      method = "GET",
+      path = "/echo_sni",
+      headers = {
+        Host = "one.com",
+      }
+    })
+    local body = assert.res_status(200, res)
+    assert.equal("SNI=one.com", body)
+    assert.errlog()
+          .has
+          .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|one.com]])
+
+    assert.errlog()
+          .has.line([[keepalive get pool, name: [A-F0-9.:]+\|\d+\|one.com, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive reusing connection [A-F0-9]+, requests: \d+, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
   end)
 
 end)
