@@ -145,6 +145,15 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .has
           .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|two.com]])
+
+    assert.errlog()
+          .has.line([[keepalive get pool, name: [A-F0-9.:]+\|\d+\|two.com, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|two.com, size: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
   end)
 
 
@@ -176,6 +185,15 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
               .has
               .line([[enabled connection keepalive \(pool=[0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+]])
+
+    assert.errlog()
+          .has.line([[keepalive get pool, name: [0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive create pool, name: [0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+, size: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
   end)
 
 
@@ -197,6 +215,11 @@ describe("#postgres upstream keepalive", function()
           .not_has
           .line("enabled connection keepalive", true)
 
+    assert.errlog()
+          .not_has.line([[keepalive get pool]], true)
+    assert.errlog()
+          .not_has.line([[keepalive create pool]], true)
+
     local res = assert(proxy_client:send {
       method = "GET",
       path = "/echo_sni",
@@ -209,6 +232,11 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .not_has
           .line("enabled connection keepalive", true)
+
+    assert.errlog()
+          .not_has.line([[keepalive get pool]], true)
+    assert.errlog()
+          .not_has.line([[keepalive create pool]], true)
   end)
 
 end)
