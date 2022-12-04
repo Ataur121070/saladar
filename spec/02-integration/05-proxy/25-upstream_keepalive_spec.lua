@@ -123,6 +123,7 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .has
           .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|one.com]])
+    os.execute("cat servroot/logs/error.log")
     assert.errlog()
           .has.line([[keepalive get pool, name:]])
 
