@@ -123,9 +123,15 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .has
           .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|one.com]])
-    os.execute("cat servroot/logs/error.log")
+
     assert.errlog()
-          .has.line([[keepalive get pool, name:]])
+          .has.line([[keepalive get pool, name: [A-F0-9.:]+\|\d+\|one.com, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|one.com, size: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
 
     local res = assert(proxy_client:send {
       method = "GET",
