@@ -123,6 +123,8 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .has
           .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|one.com]])
+    assert.errlog()
+          .has.line([[keepalive get pool, name:]])
 
     local res = assert(proxy_client:send {
       method = "GET",
@@ -136,12 +138,6 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .has
           .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|two.com]])
-    assert.errlog()
-          .has
-          .line([[lua balancer: keepalive get pool, name: [A-F0-9.:]+\|\d+\|two.com, cpool:]])
-    assert.errlog()
-          .has
-          .line([[lua balancer: keepalive create pool, name: [A-F0-9.:]+\|\d+\|two.com, size:]])
   end)
 
 
