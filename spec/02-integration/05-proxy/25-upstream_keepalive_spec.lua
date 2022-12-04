@@ -138,10 +138,10 @@ describe("#postgres upstream keepalive", function()
           .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|two.com]])
     assert.errlog()
           .has
-          .line([[keepalive get pool, name: [A-F0-9.:]+\|\d+\|two.com, cpool:]])
+          .line([[lua balancer: keepalive get pool, name: [A-F0-9.:]+\|\d+\|two.com, cpool:]])
     assert.errlog()
           .has
-          .line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|two.com, size:]])
+          .line([[lua balancer: keepalive create pool, name: [A-F0-9.:]+\|\d+\|two.com, size:]])
   end)
 
 
