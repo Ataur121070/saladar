@@ -172,6 +172,8 @@
   [#9337](https://github.com/Kong/kong/pull/9337)
 - Fixed an issue with error-handling and process cleanup in `kong start`.
   [#9337](https://github.com/Kong/kong/pull/9337)
+- Fixed an issue where upstream keepalive pool has CRC32 collision.
+  [#9856](https://github.com/Kong/kong/pull/9856)
 
 #### Hybrid Mode
 
