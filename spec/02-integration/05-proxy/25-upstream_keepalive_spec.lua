@@ -18,7 +18,7 @@ local fixtures = {
           keepalive_requests     10;
 
           location = / {
-              echo '$ssl_client_fingerprint';
+              echo '$server_port$ssl_client_fingerprint';
           }
       }
   ]]
@@ -174,6 +174,7 @@ describe("#postgres upstream keepalive", function()
     })
     local fingerprint_1 = assert.res_status(200, res)
     assert.not_equal("", fingerprint_1)
+    assert(string.sub(fingerprint_1, 1, 5) == "16798")
 
     local res = assert(proxy_client:send {
       method = "GET",
@@ -184,13 +185,14 @@ describe("#postgres upstream keepalive", function()
     })
     local fingerprint_2 = assert.res_status(200, res)
     assert.not_equal("", fingerprint_2)
+    assert(string.sub(fingerprint_1, 1, 5) == "16799")
 
     assert.not_equal(fingerprint_1, fingerprint_2)
 
     assert.errlog()
-              .has .line([[enabled connection keepalive \(pool=[0-9.]+|16798|[0-9.]+:\d+|[a-f0-9-]+]])
+              .has.line([[enabled connection keepalive \(pool=[0-9.]+|16798|[0-9.]+:\d+|[a-f0-9-]+]])
     assert.errlog()
-              .has .line([[enabled connection keepalive \(pool=[0-9.]+|16799|[0-9.]+:\d+|[a-f0-9-]+]])
+              .has.line([[enabled connection keepalive \(pool=[0-9.]+|16799|[0-9.]+:\d+|[a-f0-9-]+]])
 
     assert.errlog()
           .has.line([[keepalive get pool, name: [0-9.]+|16798|[0-9.]+:\d+|[a-f0-9-]+, cpool: 0+]])
