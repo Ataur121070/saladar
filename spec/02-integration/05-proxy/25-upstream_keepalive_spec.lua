@@ -247,7 +247,7 @@ describe("#postgres upstream keepalive", function()
           .not_has.line([[keepalive free pool]], true)
   end)
 
-  it("reuse upstream keepalive pools", function()
+  it("reuse upstream keepalive pool", function()
     start_kong()
 
     local res = assert(proxy_client:send {
@@ -295,6 +295,37 @@ describe("#postgres upstream keepalive", function()
           .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
     assert.errlog()
           .not_has.line([[keepalive free pool]], true)
+  end)
+
+  it("free upstream keepalive pool", function()
+    start_kong({ upstream_keepalive_max_requests = 1, })
+
+    local res = assert(proxy_client:send {
+      method = "GET",
+      path = "/echo_sni",
+      headers = {
+        Host = "one.com",
+      }
+    })
+    local body = assert.res_status(200, res)
+    assert.equal("SNI=one.com", body)
+    assert.errlog()
+          .has
+          .line([[enabled connection keepalive \(pool=[A-F0-9.:]+\|\d+\|one.com]])
+
+    assert.errlog()
+          .has.line([[keepalive get pool, name: [A-F0-9.:]+\|\d+\|one.com, cpool: 0+]])
+    assert.errlog()
+          .has.line([[keepalive create pool, name: [A-F0-9.:]+\|\d+\|one.com, size: \d+]])
+    assert.errlog()
+          .has.line([[keepalive not saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .has.line([[keepalive free pool, name: [A-F0-9.:]+\|\d+\|one.com, cpool: [A-F0-9]+]])
+
+    assert.errlog()
+          .not_has.line([[keepalive no free connection]], true)
+    assert.errlog()
+          .not_has.line([[keepalive saving connection]], true)
   end)
 
 end)
