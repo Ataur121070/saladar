@@ -7,6 +7,7 @@ local fixtures = {
     upstream_mtls = [[
       server {
           listen 16798 ssl;
+          listen 16799 ssl;
 
           ssl_certificate        ../spec/fixtures/mtls_certs/example.com.crt;
           ssl_certificate_key    ../spec/fixtures/mtls_certs/example.com.key;
@@ -89,7 +90,7 @@ describe("#postgres upstream keepalive", function()
     bp.routes:insert {
       hosts = { "example2.com", },
       service = bp.services:insert {
-        url = "https://127.0.0.1:16798/",
+        url = "https://127.0.0.1:16799/",
         client_certificate = bp.certificates:insert {
           cert = ssl_fixtures.cert_client2,
           key = ssl_fixtures.key_client2,
@@ -187,8 +188,9 @@ describe("#postgres upstream keepalive", function()
     assert.not_equal(fingerprint_1, fingerprint_2)
 
     assert.errlog()
-              .has
-              .line([[enabled connection keepalive \(pool=[0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+]])
+              .has .line([[enabled connection keepalive \(pool=[0-9.]+|16798|[0-9.]+:\d+|[a-f0-9-]+]])
+    assert.errlog()
+              .has .line([[enabled connection keepalive \(pool=[0-9.]+|16799|[0-9.]+:\d+|[a-f0-9-]+]])
 
     assert.errlog()
           .has.line([[keepalive get pool, name: [0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+, cpool: 0+]])
