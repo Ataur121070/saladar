@@ -132,6 +132,8 @@ describe("#postgres upstream keepalive", function()
           .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
     assert.errlog()
           .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .not_has.line([[keepalive free pool]], true)
 
     local res = assert(proxy_client:send {
       method = "GET",
@@ -154,6 +156,8 @@ describe("#postgres upstream keepalive", function()
           .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
     assert.errlog()
           .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .not_has.line([[keepalive free pool]], true)
   end)
 
 
@@ -189,11 +193,13 @@ describe("#postgres upstream keepalive", function()
     assert.errlog()
           .has.line([[keepalive get pool, name: [0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+, cpool: [A-F0-9]+]])
     assert.errlog()
-          .has.line([[keepalive create pool, name: [0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+, size: [A-F0-9]+]])
+          .has.line([[keepalive create pool, name: [0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+, size: \d+]])
     assert.errlog()
           .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
     assert.errlog()
           .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .not_has.line([[keepalive free pool]], true)
   end)
 
 
@@ -237,6 +243,8 @@ describe("#postgres upstream keepalive", function()
           .not_has.line([[keepalive get pool]], true)
     assert.errlog()
           .not_has.line([[keepalive create pool]], true)
+    assert.errlog()
+          .not_has.line([[keepalive free pool]], true)
   end)
 
   it("reuse upstream keepalive pools", function()
@@ -263,6 +271,8 @@ describe("#postgres upstream keepalive", function()
           .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
     assert.errlog()
           .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .not_has.line([[keepalive free pool]], true)
 
     local res = assert(proxy_client:send {
       method = "GET",
@@ -283,6 +293,8 @@ describe("#postgres upstream keepalive", function()
           .has.line([[keepalive reusing connection [A-F0-9]+, requests: \d+, cpool: [A-F0-9]+]])
     assert.errlog()
           .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
+    assert.errlog()
+          .not_has.line([[keepalive free pool]], true)
   end)
 
 end)
