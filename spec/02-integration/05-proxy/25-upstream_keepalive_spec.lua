@@ -185,7 +185,7 @@ describe("#postgres upstream keepalive", function()
     })
     local fingerprint_2 = assert.res_status(200, res)
     assert.not_equal("", fingerprint_2)
-    assert(string.sub(fingerprint_1, 1, 5) == "16799")
+    assert(string.sub(fingerprint_2, 1, 5) == "16799")
 
     assert.not_equal(fingerprint_1, fingerprint_2)
 
