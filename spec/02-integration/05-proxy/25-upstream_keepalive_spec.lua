@@ -193,13 +193,20 @@ describe("#postgres upstream keepalive", function()
               .has .line([[enabled connection keepalive \(pool=[0-9.]+|16799|[0-9.]+:\d+|[a-f0-9-]+]])
 
     assert.errlog()
-          .has.line([[keepalive get pool, name: [0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+, cpool: 0+]])
+          .has.line([[keepalive get pool, name: [0-9.]+|16798|[0-9.]+:\d+|[a-f0-9-]+, cpool: 0+]])
     assert.errlog()
-          .has.line([[keepalive create pool, name: [0-9.]+|\d+|[0-9.]+:\d+|[a-f0-9-]+, size: \d+]])
+          .has.line([[keepalive get pool, name: [0-9.]+|16799|[0-9.]+:\d+|[a-f0-9-]+, cpool: 0+]])
+
+    assert.errlog()
+          .has.line([[keepalive create pool, name: [0-9.]+|16798|[0-9.]+:\d+|[a-f0-9-]+, size: \d+]])
+    assert.errlog()
+          .has.line([[keepalive create pool, name: [0-9.]+|16799|[0-9.]+:\d+|[a-f0-9-]+, size: \d+]])
+
     assert.errlog()
           .has.line([[keepalive no free connection, cpool: [A-F0-9]+]])
     assert.errlog()
           .has.line([[keepalive saving connection [A-F0-9]+, cpool: [A-F0-9]+]])
+
     assert.errlog()
           .not_has.line([[keepalive free pool]], true)
   end)
